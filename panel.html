@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📊 Panel Gmail Bot</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #1e1e1e;
+            color: #f0f0f0;
+            margin: 0;
+            padding: 2rem;
+        }
+
+        h1 {
+            text-align: center;
+            color: #ff4c4c;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: auto;
+            background-color: #2a2a2a;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #444;
+        }
+
+        th {
+            background-color: #333;
+        }
+
+        tr:hover {
+            background-color: #444;
+        }
+
+        .btn {
+            background-color: #ff4c4c;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .btn:hover {
+            background-color: #e03b3b;
+        }
+
+        .form-container {
+            margin-top: 2rem;
+            padding: 25px;
+            background-color: #333;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .form-container input {
+            padding: 10px;
+            border-radius: 5px;
+            width: 100%;
+            margin: 5px 0;
+            border: 1px solid #444;
+            background-color: #222;
+            color: #fff;
+        }
+
+        .form-container input[type="email"], .form-container input[type="number"] {
+            font-size: 1rem;
+        }
+
+        .form-container button {
+            padding: 12px 25px;
+            margin-top: 10px;
+            background-color: #4caf50;
+            border: none;
+            color: white;
+            border-radius: 5px;
+            font-size: 1.1rem;
+        }
+
+        .form-container button:disabled {
+            background-color: #777;
+            cursor: not-allowed;
+        }
+
+        .form-container label {
+            font-size: 1rem;
+            color: #ddd;
+            margin-top: 1rem;
+            display: block;
+        }
+
+        .variant-count {
+            color: #9f9;
+            font-weight: bold;
+        }
+
+        .email-preview {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #ffea00;
+            margin-top: 1rem;
+        }
+
+        .action-buttons {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .action-buttons button {
+            width: 48%;
+        }
+
+        .email-list {
+            margin-top: 2rem;
+            background-color: #333;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .email-list ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .email-list li {
+            background-color: #444;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>📊 Panel de Suivi des Variantes Gmail</h1>
+    <div class="container">
+        <!-- Tableau des emails et variantes -->
+        {% if data %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Email</th>
+                    <th>Variantes utilisées</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for email, variants in data.items() %}
+                <tr>
+                    <td><code>{{ email }}</code></td>
+                    <td><span class="variant-count">{{ variants | length }}</span> utilisées</td>
+                    <td>
+                        <form method="POST" action="{{ url_for('reset') }}">
+                            <input type="hidden" name="email" value="{{ email }}">
+                            <button class="btn" type="submit">Réinitialiser</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+            <p>Aucune donnée trouvée.</p>
+        {% endif %}
+
+        <!-- Formulaire pour créer un compte Gmail et générer des variantes -->
+        <div class="form-container">
+            <h2>Générer un nouveau compte Gmail et ses variantes</h2>
+            <form method="POST" action="{{ url_for('generate') }}">
+                <label for="email">Email principal (Gmail valide) :</label>
+                <input type="email" name="email" id="email" required placeholder="Entrez un email valide ou laissez vide pour générer un nouvel email">
+                
+                <label for="variant_count">Nombre de variantes à générer :</label>
+                <input type="number" name="variant_count" id="variant_count" required min="1" value="1">
+
+                <div class="email-preview" id="generated-email-preview"></div>
+                
+                <div class="action-buttons">
+                    <button type="button" class="btn" id="generate-email">Générer un email</button>
+                    <button type="submit" class="btn" id="submit-form">Générer</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Liste des derniers emails générés -->
+        <div class="email-list">
+            <h3>Derniers emails générés :</h3>
+            <ul id="generated-email-list">
+                <!-- Emails générés apparaîtront ici -->
+            </ul>
+            <button class="btn" id="view-emails">Voir les derniers emails</button>
+        </div>
+
+        <!-- Formulaire pour démarrer le bot -->
+        <div class="form-container">
+            <h2>Lancer le Bot</h2>
+            <form method="POST" action="{{ url_for('start_bot') }}">
+                <button type="submit" class="btn">Lancer le Bot</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const generatedEmails = [];
+
+        document.getElementById('generate-email').addEventListener('click', function() {
+            // Générer un nouvel email Gmail valide
+            const randomStr = Math.random().toString(36).substring(2, 12); // Génère une chaîne aléatoire
+            const generatedEmail = randomStr + '@gmail.com';
+            document.getElementById('generated-email-preview').innerText = 'Email généré : ' + generatedEmail;
+            document.getElementById('email').value = generatedEmail;
+
+            // Ajouter l'email à la liste des générés
+            generatedEmails.push(generatedEmail);
+        });
+
+        document.getElementById('view-emails').addEventListener('click', function() {
+            const emailListContainer = document.getElementById('generated-email-list');
+            emailListContainer.innerHTML = ''; // Clear existing list
+
+            generatedEmails.forEach(email => {
+                const emailItem = document.createElement('li');
+                emailItem.textContent = email;
+                emailListContainer.appendChild(emailItem);
+            });
+        });
+    </script>
+</body>
+</html>
